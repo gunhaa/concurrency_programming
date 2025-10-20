@@ -11,12 +11,17 @@ banker algorithm에 사용되는 은행원의 제약은 아래와 같다
 // number resource, number thread
 // 제네릭 const값으로 객체를 만들면 컴파일 타임에 크기를 확정지어 heap이 아닌 stack에 할당할 수 있다
 pub struct Resource<const NRES: usize, const NTH: usize> {
-    // number resource , 이용 가능한 리소스
+    // number resource 현재 사용가능한 스레드 자원
     available: [usize; NRES],
-    // 스레드가 i가 확보 중인 리소스
-    allocation: [[usize; NRES]; NTH],
-    // 스레드가 i가 필요로 하는 리소스의 최댓값
+    // 각 스레드가 필요로 하는 최대 자원량
     max: [[usize; NRES]; NTH],
+    // 각 스레드가 점유중인 자원
+    allocation: [[usize; NRES]; NTH],
+    // need = max - allocation
+    // 검사는 req =< need , req =< available 를 통과해야함
+    // need와 available은 다른 성질을 가진다
+    // Need: 고객이 앞으로 더 필요로 하는 금액 (예: 앞으로 3천만 원 더 필요)
+    // Available: 은행이 지금 실제로 줄 수 있는 돈 (예: 현금 1천만 원만 있음)
 }
 
 impl<const NRES: usize, const NTH: usize> Resource<NRES, NTH> {
@@ -75,7 +80,6 @@ impl<const NRES: usize, const NTH: usize> Resource<NRES, NTH> {
 
     // id번째 스레드가 resource를 하나 얻음
     pub fn take(&mut self, id: usize, resource: usize) -> bool {
-        
         if id >= NTH || resource >= NRES || self.available[resource] == 0 {
             return false;
         }
@@ -93,7 +97,6 @@ impl<const NRES: usize, const NTH: usize> Resource<NRES, NTH> {
     }
 
     fn release(&mut self, id: usize, resource: usize) {
-
         if id >= NTH || resource >= NRES || self.allocation[id][resource] == 0 {
             return;
         }

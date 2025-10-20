@@ -1,1 +1,3 @@
-mod banker;
+pub mod banker;
+
+pub use banker::Resource;

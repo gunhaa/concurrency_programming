@@ -10,7 +10,7 @@ banker algorithm에 사용되는 은행원의 제약은 아래와 같다
 */
 // number resource, number thread
 // 제네릭 const값으로 객체를 만들면 컴파일 타임에 크기를 확정지어 heap이 아닌 stack에 할당할 수 있다
-struct Resource<const NRES: usize, const NTH: usize> {
+pub struct Resource<const NRES: usize, const NTH: usize> {
     // number resource , 이용 가능한 리소스
     available: [usize; NRES],
     // 스레드가 i가 확보 중인 리소스
@@ -20,16 +20,17 @@ struct Resource<const NRES: usize, const NTH: usize> {
 }
 
 impl<const NRES: usize, const NTH: usize> Resource<NRES, NTH> {
-    fn new(available: [usize; NRES], max: [[usize; NRES]; NTH]) -> Self {
+    pub fn new(available: [usize; NRES], max: [[usize; NRES]; NTH]) -> Self {
         Resource {
             available,
+            // [[x]; y] 구조의 문법을 따름
             allocation: [[0; NRES]; NTH],
             max,
         }
     }
 
     // 상태가 안전한 경우 true, 위험한 경우 false를 반환한다
-    fn is_safe(&self) -> bool {
+    pub fn is_safe(&self) -> bool {
         // i = 스레드가 확보중인 리소스, j = 스레드
         // finish[i] == false && work[j] >= (self.max[i][j] - self.allocation[i][j])를 만족하는 스레드를 찾는다
         let mut finish = [false; NTH];
@@ -57,7 +58,7 @@ impl<const NRES: usize, const NTH: usize> Resource<NRES, NTH> {
                     break;
                 }
             }
-            
+
             if num_true == NTH {
                 // 모든 스레드가 리소스 확보 가능하다면 안전
                 return true;
@@ -70,5 +71,34 @@ impl<const NRES: usize, const NTH: usize> Resource<NRES, NTH> {
         }
 
         false
+    }
+
+    // id번째 스레드가 resource를 하나 얻음
+    pub fn take(&mut self, id: usize, resource: usize) -> bool {
+        
+        if id >= NTH || resource >= NRES || self.available[resource] == 0 {
+            return false;
+        }
+
+        self.allocation[id][resource] += 1;
+        self.available[resource] -= 1;
+
+        if self.is_safe() {
+            true
+        } else {
+            self.allocation[id][resource] -= 1;
+            self.available[resource] += 1;
+            false
+        }
+    }
+
+    fn release(&mut self, id: usize, resource: usize) {
+
+        if id >= NTH || resource >= NRES || self.allocation[id][resource] == 0 {
+            return;
+        }
+
+        self.allocation[id][resource] -= 1;
+        self.available[resource] += 1;
     }
 }
